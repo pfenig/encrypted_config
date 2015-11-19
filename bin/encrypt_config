@@ -1,11 +1,13 @@
 #!/usr/bin/env ruby
 require 'openssl'
+require 'base64'
+require 'json'
 
 # run `script/encrypt_config [DIRPATH]`
 
 data = File.read(File.join(File.expand_path(ARGV[0]), 'config.json'))
 
-cipher = OpenSSL::Cipher::AES.new(128, :CBC)
+cipher = OpenSSL::Cipher::AES256.new(:CBC)
 cipher.encrypt
 
 key = File.new(File.join(File.expand_path(ARGV[0]), 'config.key'), 'w')
@@ -16,6 +18,12 @@ iv = File.new(File.join(File.expand_path(ARGV[0]), 'config.iv'), 'w')
 iv.write(cipher.random_iv)
 iv.close
 
-encrypted = File.new(File.join(File.expand_path(ARGV[0]), 'config.json.encrypted'), 'w')
+encrypted = File.new(File.join(File.expand_path(ARGV[0]), 'config.json.bin-encrypted'), 'wb')
 encrypted.write(cipher.update(data) + cipher.final)
 encrypted.close
+
+binary_encrypted = open(encrypted, 'rb')
+json_encrypted = File.new(File.join(File.expand_path(ARGV[0]), 'config.json.encrypted'), 'w')
+json_encrypted.write({ encrypted_config: Base64.encode64(binary_encrypted.read) }.to_json)
+json_encrypted.close
+
